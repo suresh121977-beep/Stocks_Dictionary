@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <application>
+
+        <!-- Opened from the Stocks Dictionary menu (no launcher icon of its own) -->
+        <activity android:name="com.example.hub.HubActivity" android:exported="true"
+            android:theme="@style/Theme.App" android:label="Trading Hub" ></activity>
+
+        <!-- Menu 1 -->
+        <activity android:name="com.example.angelwatch.MainActivity" android:exported="false"
+            android:label="AngelWatch" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App" />
+        <service android:name="com.example.angelwatch.MonitorService" android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="market_watch" />
+        </service>
+
+        <!-- Menu 2 -->
+        <activity android:name="com.example.autosquare.MainActivity" android:exported="false"
+            android:label="AutoSquare" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App" />
+        <service android:name="com.example.autosquare.MonitorService" android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="portfolio risk monitoring" />
+        </service>
+
+        <!-- Menu 3 -->
+        <activity android:name="com.example.hub.ScreenerActivity" android:exported="false"
+            android:label="Screener" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App" />
+    </application>
+</manifest>

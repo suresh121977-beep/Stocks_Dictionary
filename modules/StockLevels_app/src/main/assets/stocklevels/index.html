@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Levels</title>
+<style>
+:root{--bg:#f6f6f3;--card:#fff;--tx:#1b1b1a;--mut:#6c6b66;--ac:#0b5fff;--bd:#e2e0d9;--r:#c62828;--s:#1b8a3a;--rb:#fdecec;--sb:#e8f6ec;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#202020;--tx:#eeeeea;--mut:#a2a19b;--ac:#6aa0ff;--bd:#343330;--r:#ff8a80;--s:#69d98a;--rb:#3a1e1e;--sb:#16311f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,Roboto,sans-serif;padding:12px;padding-top:max(12px,env(safe-area-inset-top))}
+h1{font-size:20px;margin:4px 0 10px}
+.seg{display:flex;gap:6px;margin:8px 0;overflow-x:auto}
+.seg button{flex:1 0 auto;padding:9px 12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;font-size:14px;white-space:nowrap}
+.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+input,textarea{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font-size:16px}
+.go{padding:11px 18px;border:0;border-radius:10px;background:var(--ac);color:#fff;font-weight:600;font-size:15px}
+.row{display:flex;gap:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:10px 0}
+.card h3{margin:0 0 6px;font-size:13px;color:var(--mut)}
+.big{font-size:28px;font-weight:700}
+.mut{color:var(--mut);font-size:13px}
+.sug{padding:10px 4px;border-bottom:1px solid var(--bd)}
+.lv{display:flex;justify-content:space-between;padding:8px 8px;border-radius:8px;margin:2px 0;font-size:15px}
+.lv.R{background:var(--rb)}.lv.S{background:var(--sb)}
+.lv.P{background:var(--ac);color:#fff;font-weight:700}
+.lv .t{display:flex;flex-direction:column;align-items:flex-end}
+.lv small{font-size:11px;opacity:.75}
+.R .v{color:var(--r)}.S .v{color:var(--s)}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{font-size:12px;color:var(--mut)}
+.hide{display:none}
+.err{color:var(--r)}
+</style></head><body>
+<h1>📈 Stock Levels</h1>
+<div class="seg"><button id="mLive" class="on">Live (Yahoo)</button><button id="mMan">Manual (offline)</button></div>
+
+<div id="live">
+ <div class="row"><input id="q" placeholder="Stock name or symbol (e.g. RELIANCE.NS, AAPL)" autocapitalize="characters"><button class="go" id="go">Go</button></div>
+ <div id="sug"></div>
+ <div id="pc" class="card hide"></div>
+</div>
+
+<div id="man" class="hide card">
+ <div class="g">
+  <div><label>High</label><input id="mH" type="number" inputmode="decimal"></div>
+  <div><label>Low</label><input id="mL" type="number" inputmode="decimal"></div>
+  <div><label>Close</label><input id="mC" type="number" inputmode="decimal"></div>
+  <div><label>Current price (optional)</label><input id="mP" type="number" inputmode="decimal"></div>
+  <div><label>Bars in range (Gann angles)</label><input id="mB" type="number" value="20"></div>
+ </div>
+ <label style="display:block;margin-top:8px">Closing prices, comma separated, oldest first (for SMA, optional)</label>
+ <textarea id="mS" rows="2"></textarea>
+ <div class="row" style="margin-top:8px"><button class="go" id="calc">Calculate</button></div>
+ <div class="mut" id="mErr"></div>
+</div>
+
+<div id="out" class="hide">
+ <div class="seg" id="tfs"><button data-t="D" class="on">Daily</button><button data-t="W">Weekly</button><button data-t="M">Monthly</button><button data-t="A">All-time</button></div>
+ <div class="seg" id="bars"><button data-b="prev" class="on">Last completed bar</button><button data-b="cur">Running (current) bar</button></div>
+ <div class="seg" id="tabs"><button data-k="pivot" class="on">Pivot</button><button data-k="fib">Fibonacci</button><button data-k="gann">Gann angles</button><button data-k="sqrt">√ Gann</button><button data-k="sma">SMA</button><button data-k="sq9">Square 9</button></div>
+ <div id="note" class="mut"></div>
+ <div id="res"></div>
+ <div class="mut" style="margin-top:12px">Educational tool, not financial advice. Data from Yahoo Finance (unofficial).</div>
+</div>
+
+<script src="calc.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const S={bar:'prev',mode:'live',tab:'pivot',tf:'D',frames:null,price:0,manual:false,info:null};
+const cbs={};let seq=0;
+window.__cb=(id,err,txt)=>{const c=cbs[id];delete cbs[id];if(!c)return;if(err)c.rej(new Error(err));else{try{c.res(JSON.parse(txt))}catch(e){c.rej(e)}}};
+function net(url){return new Promise((res,rej)=>{
+ if(window.Android){const id='c'+(++seq);cbs[id]={res,rej};Android.fetch(url,id)}
+ else fetch(url).then(r=>r.json()).then(res,rej)})}
+const fmt=x=>{if(!isFinite(x))return'n/a';const d=Math.abs(x)<1?4:2;return x.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d})};
+function setMode(m){S.mode=m;$('mLive').classList.toggle('on',m==='live');$('mMan').classList.toggle('on',m==='man');
+ $('live').classList.toggle('hide',m!=='live');$('man').classList.toggle('hide',m!=='man');
+ $('out').classList.toggle('hide',!(S.frames&&S.manual===(m==='man')));}
+$('mLive').onclick=()=>setMode('live');$('mMan').onclick=()=>setMode('man');
+$('go').onclick=search;$('q').onkeydown=e=>{if(e.key==='Enter')search()};
+async function search(){
+ const q=$('q').value.trim();if(!q)return;
+ const sg=$('sug');sg.innerHTML='<div class="mut">Searching…</div>';
+ try{
+  const j=await net('https://query1.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(q)+'&quotesCount=8&newsCount=0');
+  const qs=(j.quotes||[]).filter(x=>x.symbol);
+  if(!qs.length){sg.innerHTML='<div class="mut err">No match found.</div>';return}
+  if(qs.length===1||qs[0].symbol.toUpperCase()===q.toUpperCase()){sg.innerHTML='';load(qs[0].symbol);return}
+  sg.innerHTML='<div class="mut">Tap the right one:</div>';
+  qs.forEach(x=>{const d=document.createElement('div');d.className='sug';
+   d.innerHTML='<b></b> <span class="mut"></span>';d.firstChild.textContent=x.symbol;
+   d.lastChild.textContent=(x.longname||x.shortname||'')+' · '+(x.exchDisp||'');
+   d.onclick=()=>{sg.innerHTML='';load(x.symbol)};sg.appendChild(d)});
+ }catch(e){sg.innerHTML='<div class="mut err">Could not reach Yahoo Finance ('+e.message+'). Check internet.</div>'}
+}
+async function load(sym){
+ const pc=$('pc');pc.classList.remove('hide');pc.innerHTML='<div class="mut">Loading '+sym+'…</div>';
+ try{
+  const j=await net('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?range=max&interval=1d&includePrePost=false');
+  const r=j.chart.result[0],m=r.meta,q=r.indicators.quote[0],bars=[];
+  r.timestamp.forEach((t,i)=>{if(q.close[i]!=null&&q.high[i]!=null&&q.low[i]!=null)bars.push({t:t*1000,h:q.high[i],l:q.low[i],c:q.close[i]})});
+  if(bars.length<2)throw new Error('Not enough data');
+  S.frames=Calc.buildFrames(bars,m);S.price=m.regularMarketPrice??bars[bars.length-1].c;S.manual=false;
+  const pv=m.chartPreviousClose??bars[bars.length-2].c,ch=S.price-pv;
+  pc.innerHTML='<h3></h3><div class="big"></div><div></div><div class="mut"></div>';
+  pc.children[0].textContent=(m.longName||m.shortName||sym)+' ('+m.symbol+')';
+  pc.children[1].textContent=fmt(S.price)+' '+(m.currency||'');
+  pc.children[2].textContent=(ch>=0?'▲ +':'▼ ')+fmt(ch)+' ('+(ch/pv*100).toFixed(2)+'%)';
+  pc.children[2].style.color=ch>=0?'var(--s)':'var(--r)';
+  pc.children[3].textContent='Prev close '+fmt(pv)+' · '+bars.length+' daily bars loaded';
+  $('out').classList.remove('hide');show();
+ }catch(e){pc.innerHTML='<div class="mut err">Failed: '+e.message+'</div>'}
+}
+$('calc').onclick=()=>{
+ const H=+$('mH').value,L=+$('mL').value,C=+$('mC').value,B=Math.max(1,parseInt($('mB').value)||20);
+ const P=+$('mP').value||C;
+ if(!(H>0&&L>0&&C>0)||H<L){$('mErr').textContent='Enter valid High, Low and Close (High ≥ Low).';return}
+ $('mErr').textContent='';
+ const cl=$('mS').value.split(/[\s,;]+/).map(Number).filter(x=>isFinite(x)&&x>0);
+ const f={pH:H,pL:L,pC:C,wH:H,wL:L,W:B,closes:cl};
+ S.frames={D:f,W:f,M:f,A:f};S.price=P;S.manual=true;
+ $('out').classList.remove('hide');show();
+};
+$('tfs').onclick=e=>{const t=e.target.dataset.t;if(t){S.tf=t;show()}};
+$('bars').onclick=e=>{const b=e.target.dataset.b;if(b){S.bar=b;show()}};
+$('tabs').onclick=e=>{const k=e.target.dataset.k;if(k){S.tab=k;show()}};
+function show(){
+ [...$('tfs').children].forEach(b=>b.classList.toggle('on',b.dataset.t===S.tf));
+ [...$('tabs').children].forEach(b=>b.classList.toggle('on',b.dataset.k===S.tab));
+ const noTf=S.tab==='sq9'||(S.manual&&S.tab!=='sqrt');
+ $('tfs').classList.toggle('hide',noTf);
+ let f=S.frames[S.tf];const P=S.price,res=$('res');res.innerHTML='';
+ const pf=(S.tab==='pivot'||S.tab==='fib')&&!S.manual&&S.tf!=='A';
+ $('bars').classList.toggle('hide',!pf);
+ [...$('bars').children].forEach(b=>b.classList.toggle('on',b.dataset.b===S.bar));
+ let dl=f.pD;
+ if(pf&&S.bar==='cur'){f=Object.assign({},f,{pH:f.cH,pL:f.cL,pC:f.cC});dl=f.cD}
+ const names={D:'Daily',W:'Weekly',M:'Monthly',A:'All-time'};
+ let note='';
+ if(S.manual)note='Manual values used. Works offline.';
+ else if(S.tab==='pivot'||S.tab==='fib')note=names[S.tf]+': based on '+(S.tf==='A'?'all-time high '+fmt(f.pH)+', low '+fmt(f.pL)+' and latest close':(pf&&S.bar==='cur'?'the running bar':'the last completed bar')+' ('+dl+') — H '+fmt(f.pH)+', L '+fmt(f.pL)+', C '+fmt(f.pC));
+ else if(S.tab==='gann')note='Window of '+f.W+' bars: high '+fmt(f.wH)+', low '+fmt(f.wL)+'. Levels are projected for the next bar.';
+ else if(S.tab==='sma')note=(S.tf==='A'?'Daily':names[S.tf])+' closes. Red = above price (resistance), green = below (support).';
+ else if(S.tab==='sqrt')note='Next support/resistance from current price '+fmt(P)+'. Larger time frame = larger step.';
+ else note='Based on current price '+fmt(P)+'.';
+ $('note').textContent=note;
+ Calc.compute(S.tab,f,P,S.tf).forEach(g=>{
+  const c=document.createElement('div');c.className='card';const h=document.createElement('h3');h.textContent=g.title;c.appendChild(h);
+  const rows=g.rows.filter(r=>isFinite(r[1])&&r[1]>0).sort((a,b)=>b[1]-a[1]);
+  let placed=false;
+  const pr=()=>{const d=document.createElement('div');d.className='lv P';d.innerHTML='<span>Current price</span><span></span>';d.lastChild.textContent=fmt(P);c.appendChild(d);placed=true};
+  g.rows.filter(r=>!isFinite(r[1])).forEach(r=>{const d=document.createElement('div');d.className='lv';d.innerHTML='<span></span><span class="mut">need more data</span>';d.firstChild.textContent=r[0];c.appendChild(d)});
+  rows.forEach(r=>{if(!placed&&r[1]<P)pr();
+   const d=document.createElement('div');d.className='lv '+(r[1]>P?'R':'S');
+   d.innerHTML='<span></span><span class="t"><span class="v"></span><small></small></span>';
+   d.firstChild.textContent=r[0];const t=d.lastChild;t.children[0].textContent=fmt(r[1]);
+   t.children[1].textContent=((r[1]/P-1)*100).toFixed(2)+'%';c.appendChild(d)});
+  if(!placed)pr();
+  res.appendChild(c)});
+}
+</script></body></html>

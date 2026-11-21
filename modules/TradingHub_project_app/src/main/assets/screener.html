@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screener</title>
+<style>
+:root{
+  --bg:#eef2f4; --surface:#ffffff; --ink:#14232b; --muted:#5c6f79; --line:#d6e0e5;
+  --accent:#0b6e7a; --accent-ink:#ffffff; --soft:#e1eef0; --up:#12804f; --dn:#c62f2f; --warn:#9a6700;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1519; --surface:#151f25; --ink:#e6eef1; --muted:#8fa4ae; --line:#26363e;
+    --accent:#4cc3d1; --accent-ink:#06191c; --soft:#1c2c33; --up:#4fd392; --dn:#ff7b7b; --warn:#e5b44a;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px 12px 60px}
+main{max-width:1500px;margin:0 auto}
+h1{font-size:1.5rem;margin:0 0 2px}
+.sub{color:var(--muted);margin:0 0 14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row>div{flex:1 1 180px}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:3px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+button{font:inherit;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;background:var(--accent);color:var(--accent-ink);font-weight:600}
+button.alt{background:var(--soft);color:var(--ink)}
+button.link{background:none;color:var(--accent);padding:0;font-weight:700;text-align:left;text-decoration:underline;text-underline-offset:3px}
+button.icon{background:var(--soft);color:var(--ink);padding:5px 9px;font-size:.85rem}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.searchbox{position:relative}
+#results{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:320px;overflow:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+#results button{display:block;width:100%;text-align:left;background:none;color:var(--ink);border-radius:0;font-weight:500;padding:10px 12px;border-bottom:1px solid var(--line)}
+#results button:hover,#results button:focus-visible{background:var(--soft)}
+#results small{color:var(--muted)}
+.status{font-size:.9rem;color:var(--muted);min-height:1.3em;margin-top:8px}
+.status.err{color:var(--dn)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.top h2{margin:0;font-size:1.05rem}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+.toolbar>div{flex:1 1 200px}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;-webkit-overflow-scrolling:touch}
+table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-variant-numeric:tabular-nums}
+.detail table{width:100%}
+th,td{padding:7px 8px;font-size:.85rem;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;white-space:nowrap}
+th{background:var(--soft);font-size:.75rem;color:var(--muted);font-weight:700;position:sticky;top:0;z-index:2}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;z-index:3;background:var(--surface);border-right:1px solid var(--line);width:140px;min-width:140px;max-width:140px;white-space:normal;word-break:normal;overflow-wrap:break-word}
+th:first-child{background:var(--soft);z-index:4}
+tr:last-child td{border-bottom:0}
+.pc .lat{font-weight:700}
+.pc .prv{color:var(--muted)}
+.pc small{display:block;font-size:.7rem;color:var(--muted);font-weight:400}
+.dif{font-size:.72rem;font-weight:600;color:var(--muted);margin-top:2px}
+.dif.up{color:var(--up)} .dif.dn{color:var(--dn)}
+.lat.up{color:var(--up)} .lat.dn{color:var(--dn)}
+.lat.up::before{content:"▲ ";font-size:.7em} .lat.dn::before{content:"▼ ";font-size:.7em}
+.na{color:var(--muted)}
+.sym{display:block;font-size:.75rem;color:var(--muted);font-weight:400}
+.upd{display:block;font-size:.7rem;color:var(--muted)}
+.err-note{display:block;font-size:.7rem;color:var(--dn);white-space:normal;max-width:160px}
+.acts{display:flex;gap:5px;justify-content:flex-end}
+.pill{display:inline-block;min-width:2.2em;text-align:center;padding:2px 8px;border-radius:999px;background:var(--soft);font-weight:700;font-size:.8rem}
+.pill.hi{background:var(--up);color:#fff}.pill.lo{background:var(--dn);color:#fff}
+.cards{display:none}
+body.cardview #listView .wrap{display:none}
+body.cardview .cards{display:block}
+.stockrow{display:block;width:100%;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;font-weight:500}
+.stockrow .l1{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.stockrow b{color:var(--accent);font-size:1rem}
+.stockrow .l2{color:var(--muted);font-size:.82rem;margin-top:4px}
+.detail td:first-child{position:static;color:var(--muted);width:46%;min-width:0;max-width:none;white-space:normal}
+.detail td{text-align:left;white-space:normal}
+.detail td:last-child{font-weight:600}
+.detail td.sec{background:var(--soft);color:var(--ink);font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+.empty{color:var(--muted);padding:24px;text-align:center}
+.note{font-size:.82rem;color:var(--muted);margin-top:10px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin-bottom:6px}
+.dgrid .k{font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:2px}
+.dgrid .v{font-weight:600;font-variant-numeric:tabular-nums}
+.gt{margin:16px 0 8px;padding:6px 10px;background:var(--soft);border-radius:8px;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+.dhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Screener Watchlist</h1>
+  <p class="sub">Search a company on screener.in, add it, and compare key numbers for all your stocks.</p>
+
+  <section class="card">
+    <div class="row">
+      <div class="searchbox" style="flex:3 1 260px">
+        <label for="q">Search stock name or symbol</label>
+        <input id="q" type="text" placeholder="e.g. TMPV, Tata Motors, Infosys" autocomplete="off">
+        <div id="results" role="listbox"></div>
+      </div>
+      <div>
+        <label for="mode">Update data</label>
+        <select id="mode">
+          <option value="daily">Once a day</option>
+          <option value="six">Every 6 hours</option>
+          <option value="hourly">Every hour</option>
+          <option value="manual">Only when I press Refresh</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto"><button id="refreshAll">Refresh all now</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <details id="conn" style="margin-top:8px">
+      <summary style="cursor:pointer;color:var(--muted)">Connection settings</summary>
+      <div style="margin-top:8px">
+        <label for="proxy">Your own proxy address (optional, not needed in the Android app)</label>
+        <input id="proxy" type="text" placeholder="https://your-worker.example.workers.dev/?url=">
+        <div style="margin-top:8px"><button class="alt" id="testConn">Test connection</button></div>
+        <pre id="testOut" class="note" style="white-space:pre-wrap;margin:8px 0 0"></pre>
+      </div>
+    </details>
+  </section>
+
+  <section class="card" id="listView">
+    <div class="top"><h2>Watchlist <span id="count" class="na"></span></h2></div>
+    <div class="toolbar">
+      <div style="flex:2 1 240px">
+        <label for="flt">Search my watchlist</label>
+        <input id="flt" type="search" placeholder="Filter by name or symbol" autocomplete="off">
+      </div>
+      <div>
+        <label for="sort">Order</label>
+        <select id="sort">
+          <option value="latestq">Latest quarter result done (newest first)</option>
+          <option value="name">Alphabet (A to Z)</option>
+          <option value="score">Score (best to worst)</option>
+          <option value="qProfitG">Net profit growth, quarter</option>
+          <option value="qRevG">Revenue growth, quarter</option>
+          <option value="aProfitG">Net profit growth, year</option>
+          <option value="aRevG">Revenue growth, year</option>
+          <option value="opm">Margin (OPM), high to low</option>
+          <option value="roe">ROE, high to low</option>
+          <option value="roce">ROCE, high to low</option>
+          <option value="div">Dividend yield, high to low</option>
+          <option value="pe">P/E, low to high</option>
+          <option value="debt">Debt to reserves, low to high</option>
+          <option value="promo">Promoter holding, high to low</option>
+          <option value="added">Order I added them</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto"><button class="alt" id="viewBtn"></button></div>
+      <div style="flex:0 0 auto"><button id="csvBtn">Save as CSV</button></div>
+    </div>
+    <div class="wrap"><table id="tbl"></table></div>
+    <div class="cards" id="cards"></div>
+    <p class="note">Tap a stock name to see all its figures. In tables, each cell shows the latest period on top and the one before it below; green and red show the change (for debt, a rise is red). Debt and reserves come from the balance sheet, which is yearly. Industry P/E is the median P/E of the peers Screener lists, and Sector P/E is the median of the companies on Screener's sector page. Pledged % is the share of promoter holding pledged (Screener shows nothing when it is zero). The score (0 to 100) ranks your stocks against each other on growth, margin, ROE, ROCE, P/E, debt, pledge and dividend yield. It is a sorting aid only, not advice. Updates only run while the app is open.</p>
+  </section>
+
+  <section class="card detail" id="detailView" hidden>
+    <div class="top">
+      <h2 id="dTitle"></h2>
+      <div class="acts"><button class="alt" id="dToggle"></button><button class="alt" id="dRefresh">Refresh</button><button class="alt" id="dDelete">Remove</button><button id="dBack">Back</button></div>
+    </div>
+    <div class="wrap"><table id="dTbl"></table></div>
+    <div id="dCard" hidden></div>
+  </section>
+
+  <section class="card" id="csvBox" hidden>
+    <h2 style="font-size:1.05rem;margin:0 0 8px">Your CSV</h2>
+    <p class="note" style="margin-top:0">Saving a file was not possible here. Copy this text and paste it into a notes app or spreadsheet.</p>
+    <textarea id="csvText" rows="8" readonly></textarea>
+    <div class="top" style="margin:10px 0 0"><button id="csvCopy">Copy</button><button class="alt" id="csvClose">Close</button></div>
+  </section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const SITE="https://www.screener.in";
+const LS="screenerWatch.v1";
+const DATA_V=3;
+let state={stocks:[],settings:{mode:"daily",proxy:"",sort:"score",view:""},good:0};
+let refreshing=false, openSym=null;
+const secCache={};
+
+function load(){try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){state=Object.assign(state,s);state.settings=Object.assign({mode:"daily",proxy:"",sort:"score",view:""},s.settings)}}catch(e){}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(state))}catch(e){}}
+function setStatus(m,err){$("status").textContent=m;$("status").classList.toggle("err",!!err)}
+
+/* ---------- Network ---------- */
+function routes(u){
+  const r=[];
+  const p=state.settings.proxy.trim();
+  if(p) r.push({label:"your proxy",url:p.includes("{url}")?p.replace("{url}",encodeURIComponent(u)):p+encodeURIComponent(u)});
+  r.push({label:"direct",url:u},
+    {label:"corsproxy.io",url:"https://corsproxy.io/?url="+encodeURIComponent(u)},
+    {label:"allorigins",url:"https://api.allorigins.win/raw?url="+encodeURIComponent(u)},
+    {label:"codetabs",url:"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u)});
+  return r;
+}
+/* In the Trading Hub app a WebView cannot call screener.in itself (CORS), so the app fetches for us. */
+const NH={n:0,p:{}};
+window.__nh=(id,status,body)=>{
+  const p=NH.p[id];if(!p)return;delete NH.p[id];
+  if(status>=200&&status<300)p.res(body);else p.rej(new Error(status?("HTTP "+status):body));
+};
+function nativeGet(url,ms){
+  return new Promise((res,rej)=>{
+    const id=++NH.n;
+    const t=setTimeout(()=>{delete NH.p[id];rej(new Error("timed out"))},ms);
+    NH.p[id]={res:v=>{clearTimeout(t);res(v)},rej:e=>{clearTimeout(t);rej(e)}};
+    try{window.NativeHttp.get(id,url)}catch(e){clearTimeout(t);delete NH.p[id];rej(e)}
+  });
+}
+async function timedFetch(url,ms=18000){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  try{
+    if(window.NativeHttp&&window.NativeHttp.get)return await nativeGet(url,ms);
+    const native=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+    const r=await fetch(url,native?{signal:c.signal,headers:{"User-Agent":"Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36","Accept":"text/html,application/json,*/*"}}:{signal:c.signal});
+    if(!r.ok)throw new Error("HTTP "+r.status);return await r.text()}
+  catch(e){throw new Error(e.name==="AbortError"?"timed out":(e.message==="Failed to fetch"?"blocked":e.message))}
+  finally{clearTimeout(t)}
+}
+const HINT=" Free public proxies are often blocked by screener.in. The Android app does not need one.";
+async function getVia(u,check,onlyGood){
+  const list=routes(u);
+  const g=Math.min(state.good,list.length-1);
+  let order=list.map((_,i)=>i);
+  order.splice(order.indexOf(g),1);order.unshift(g);
+  if(onlyGood)order=[g];
+  const errs=[];
+  for(const i of order){
+    try{const t=await timedFetch(list[i].url);if(check(t)){state.good=i;return t}errs.push(list[i].label+": unexpected reply")}
+    catch(e){errs.push(list[i].label+": "+e.message)}
+  }
+  throw new Error("Could not read screener.in. "+errs.join("; ")+"."+HINT);
+}
+
+/* ---------- Parsing ---------- */
+const clean=s=>(s||"").replace(/\s+/g," ").trim();
+const num=s=>{if(s==null||s==="")return null;const n=parseFloat(String(s).replace(/[,%₹\s]/g,""));return isNaN(n)?null:n};
+const MARKET_RE=/^\/market\/IN\d+(\/IN\d+)*\/?(\?.*)?$/;
+function readTable(doc,sel){
+  const sec=doc.querySelector(sel);if(!sec)return null;
+  const t=sec.querySelector("table.data-table")||sec.querySelector("table");if(!t)return null;
+  const heads=[...t.querySelectorAll("thead th")].map(h=>clean(h.textContent)).slice(1);
+  const rows={};
+  t.querySelectorAll("tbody tr").forEach(tr=>{
+    const tds=[...tr.children];if(tds.length<2)return;
+    rows[clean(tds[0].textContent).replace(/\s*\+$/,"")]=tds.slice(1).map(td=>clean(td.textContent));
+  });
+  return {heads,rows};
+}
+function pairFrom(tbl,re,noTTM){
+  if(!tbl)return null;
+  const key=Object.keys(tbl.rows).find(k=>re.test(k));if(!key)return null;
+  const vals=tbl.rows[key],idx=[];
+  for(let i=vals.length-1;i>=0&&idx.length<2;i--){
+    if(vals[i]==="")continue;
+    if(noTTM&&/^ttm$/i.test(tbl.heads[i]||""))continue;
+    idx.unshift(i);
+  }
+  if(!idx.length)return null;
+  const p={labels:idx.map(i=>tbl.heads[i]||""),values:idx.map(i=>num(vals[i]))};
+  if(p.values.length===1){p.labels.unshift("");p.values.unshift(null)}
+  return p;
+}
+function ttmEps(pl,q){
+  if(pl){
+    const key=Object.keys(pl.rows).find(k=>/^eps/i.test(k));
+    const i=pl.heads.findIndex(h=>/^ttm$/i.test(h));
+    if(key&&i>=0){const v=num(pl.rows[key][i]);if(v!=null)return v}
+  }
+  if(q){
+    const key=Object.keys(q.rows).find(k=>/^eps/i.test(k));
+    if(key){const v=q.rows[key].map(num).filter(x=>x!=null);if(v.length>=4)return v.slice(-4).reduce((a,b)=>a+b,0)}
+  }
+  return null;
+}
+function sumPairs(a,b){
+  if(!a&&!b)return null;
+  if(!a||!b)return a||b;
+  return {labels:a.labels,values:a.values.map((v,i)=>{const w=b.values[i];return v==null&&w==null?null:(v||0)+(w||0)})};
+}
+function median(a){if(!a.length)return null;const s=a.slice().sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function parsePeTable(html){
+  const doc=new DOMParser().parseFromString(html,"text/html");
+  const anchors=[...doc.querySelectorAll("a[href]")].map(a=>({href:a.getAttribute("href"),text:clean(a.textContent)})).filter(a=>MARKET_RE.test(a.href));
+  const t=doc.querySelector("table");
+  if(!t)return {found:false,median:null,anchors};
+  const hr=t.querySelector("thead tr")||t.querySelector("tr");
+  const heads=[...hr.children].map(c=>clean(c.textContent));
+  const col=heads.findIndex(h=>/^P\/E/i.test(h));
+  if(col<0)return {found:false,median:null,anchors};
+  let shown=null;const vals=[];
+  t.querySelectorAll("tr").forEach(tr=>{
+    if(tr===hr)return;
+    const cells=[...tr.children];if(!cells.length)return;
+    if(/median/i.test(tr.textContent)){
+      let pos=0;
+      for(const td of cells){const sp=parseInt(td.getAttribute("colspan")||"1",10);if(pos===col&&sp===1){shown=num(td.textContent);break}pos+=sp}
+      return;
+    }
+    if(cells.length===heads.length){const v=num(cells[col].textContent);if(v!=null&&v>0)vals.push(v)}
+  });
+  return {found:true,median:shown!=null?shown:median(vals),anchors};
+}
+function parseCompany(html){
+  const doc=new DOMParser().parseFromString(html,"text/html");
+  const ratios={};
+  doc.querySelectorAll("#top-ratios li").forEach(li=>{
+    const n=clean(li.querySelector(".name")?.textContent),v=li.querySelector(".value .number");
+    if(n) ratios[n]=v?num(v.textContent):null;
+  });
+  if(!Object.keys(ratios).length) throw new Error("Company page not recognised");
+  const q=readTable(doc,"#quarters"),pl=readTable(doc,"#profit-loss"),b=readTable(doc,"#balance-sheet");
+  const sh=readTable(doc,"#quarterly-shp")||readTable(doc,"#shareholding");
+  const fii=pairFrom(sh,/^fiis?/i),dii=pairFrom(sh,/^diis?/i);
+  // peers endpoint candidates
+  const cands=[];
+  const m1=html.match(/\/api\/company\/\d+\/peers\/[^"'\s<>]*/);
+  if(m1)cands.push(m1[0].replace(/&amp;/g,"&"));
+  const dataUrl=doc.querySelector("#peers")?.getAttribute("data-url");
+  if(dataUrl)cands.push(dataUrl);
+  const w=html.match(/data-warehouse-id=["'](\d+)["']/),c=html.match(/data-company-id=["'](\d+)["']/);
+  if(w)cands.push("/api/company/"+w[1]+"/peers/");
+  if(c)cands.push("/api/company/"+c[1]+"/peers/");
+  const anchors=[...doc.querySelectorAll("a[href]")].map(a=>({href:a.getAttribute("href"),text:clean(a.textContent)})).filter(a=>MARKET_RE.test(a.href));
+  return {
+    v:DATA_V,
+    name:clean(doc.querySelector("h1")?.textContent),
+    price:ratios["Current Price"],mcap:ratios["Market Cap"],pe:ratios["Stock P/E"],bv:ratios["Book Value"],
+    faceValue:ratios["Face Value"],divYield:ratios["Dividend Yield"],
+    roce:ratios["ROCE"],roe:ratios["ROE"],
+    pledged:ratios["Pledged percentage"]??0,
+    eps:pairFrom(q,/^eps/i),sales:pairFrom(q,/^(sales|revenue)/i),profit:pairFrom(q,/^net profit/i),opm:pairFrom(q,/(opm|margin)\s*%/i),
+    ttmEps:ttmEps(pl,q),
+    opProfit:pairFrom(q,/^(operating|financing) profit/i),otherInc:pairFrom(q,/^other income/i),
+    aOpProfit:pairFrom(pl,/^(operating|financing) profit/i,true),aOtherInc:pairFrom(pl,/^other income/i,true),
+    aSales:pairFrom(pl,/^(sales|revenue)/i,true),aProfit:pairFrom(pl,/^net profit/i,true),aOpm:pairFrom(pl,/(opm|margin)\s*%/i,true),
+    debt:pairFrom(b,/^borrowings/i),reserves:pairFrom(b,/^reserves/i),
+    promo:pairFrom(sh,/^promoters/i),fii,dii,inst:sumPairs(fii,dii),pub:pairFrom(sh,/^public/i),
+    industryPE:null,sectorPE:null,sectorName:"",industryName:"",notes:[],
+    _cands:cands,_anchors:anchors
+  };
+}
+
+/* ---------- Stock operations ---------- */
+const symOf=u=>(u.match(/\/company\/([^/]+)/)||[])[1]||u;
+async function refreshStock(s){
+  let html;
+  try{html=await getVia(SITE+s.url,t=>t.includes("top-ratios"))}
+  catch(e){
+    if(s.url.includes("/consolidated/")){
+      const alt=s.url.replace("/consolidated/","/");
+      html=await getVia(SITE+alt,t=>t.includes("top-ratios"));s.url=alt;
+    }else throw e;
+  }
+  const d=parseCompany(html);
+  let anchors=d._anchors;
+  // industry P/E from peers table
+  for(const path of d._cands){
+    try{
+      const ph=await getVia(SITE+path,t=>t.includes("<table"),true);
+      const r=parsePeTable(ph);
+      if(r.found){d.industryPE=r.median;if(!anchors.length)anchors=r.anchors;break}
+    }catch(e){}
+  }
+  if(d.industryPE==null)d.notes.push("Industry P/E could not be read from the peers table.");
+  // sector / industry names and sector P/E
+  const uniq=[];anchors.forEach(a=>{const h=a.href.split("?")[0];if(!uniq.some(x=>x.href===h))uniq.push({href:h,text:a.text})});
+  uniq.sort((a,b)=>a.href.length-b.href.length);
+  if(uniq.length){
+    const sec=uniq[0],ind=uniq[uniq.length-1];
+    d.sectorName=sec.text;d.industryName=ind.text;
+    const cached=secCache[sec.href];
+    if(cached&&Date.now()-cached.t<6*3600e3)d.sectorPE=cached.pe;
+    else{
+      try{
+        const sh=await getVia(SITE+sec.href,t=>t.includes("<table"),true);
+        const r=parsePeTable(sh);
+        d.sectorPE=r.median;
+        if(r.found)secCache[sec.href]={t:Date.now(),pe:r.median};
+      }catch(e){}
+    }
+  }
+  if(d.sectorPE==null)d.notes.push("Sector P/E could not be read.");
+  delete d._cands;delete d._anchors;
+  s.data=d;s.name=d.name||s.name;s.updated=Date.now();s.error=null;
+}
+async function refreshMany(list){
+  if(refreshing)return;refreshing=true;
+  $("refreshAll").disabled=true;
+  let ok=0;
+  for(let i=0;i<list.length;i++){
+    const s=list[i];
+    setStatus(`Updating ${s.symbol} (${i+1} of ${list.length})…`);
+    try{await refreshStock(s);ok++}catch(e){s.error=e.message}
+    save();render();
+    if(i<list.length-1)await new Promise(r=>setTimeout(r,700));
+  }
+  refreshing=false;$("refreshAll").disabled=false;
+  const bad=list.length-ok;
+  if(bad)$("conn").open=true;
+  setStatus(bad?`Updated ${ok}, failed ${bad}. Check the connection settings or try again later.`:`Updated ${ok} stock${ok===1?"":"s"} at ${new Date().toLocaleTimeString()}.`,!!bad);
+}
+function addStock(url,name){
+  const symbol=symOf(url).toUpperCase();
+  if(state.stocks.some(s=>s.symbol===symbol)){setStatus(symbol+" is already in your watchlist.");return}
+  const s={symbol,name:name||symbol,url,data:null,updated:0,error:null};
+  state.stocks.push(s);save();render();
+  refreshMany([s]);
+}
+function removeStock(sym){
+  state.stocks=state.stocks.filter(s=>s.symbol!==sym);save();
+  if(openSym===sym)closeDetail();render();
+}
+function isStale(s){
+  const m=state.settings.mode;
+  if(!s.data||s.data.v!==DATA_V)return true;
+  if(m==="manual")return false;
+  if(!s.updated)return true;
+  if(m==="daily")return new Date(s.updated).toDateString()!==new Date().toDateString();
+  return Date.now()-s.updated>(m==="six"?6:1)*3600e3;
+}
+function autoCheck(){
+  if(refreshing)return;
+  const stale=state.stocks.filter(isStale);
+  if(stale.length)refreshMany(stale);
+}
+
+/* ---------- Search ---------- */
+let qTimer=null,qSeq=0;
+$("q").addEventListener("input",()=>{
+  clearTimeout(qTimer);
+  const v=$("q").value.trim();
+  if(v.length<2){$("results").style.display="none";return}
+  qTimer=setTimeout(()=>search(v),350);
+});
+$("q").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){const v=$("q").value.trim();if(v){const first=$("results").querySelector("button");if(first)first.click();else addDirect(v)}}
+  if(e.key==="Escape")$("results").style.display="none";
+});
+document.addEventListener("click",e=>{if(!e.target.closest(".searchbox"))$("results").style.display="none"});
+async function search(v){
+  const my=++qSeq;
+  setStatus("Searching…");
+  let items=[];
+  try{
+    const t=await getVia(SITE+"/api/company/search/?q="+encodeURIComponent(v)+"&v=3&fts=1",t=>/^\s*[\[{]/.test(t));
+    items=JSON.parse(t);
+    if(!Array.isArray(items))items=items.results||[];
+    setStatus("");
+  }catch(e){setStatus("Search is unavailable right now. You can still add by symbol below.",true)}
+  if(my!==qSeq)return;
+  const box=$("results");box.innerHTML="";
+  items.filter(x=>x.url&&x.url.includes("/company/")).slice(0,12).forEach(x=>{
+    const b=document.createElement("button");
+    b.innerHTML=esc(x.name)+" <small>"+esc(symOf(x.url))+"</small>";
+    b.onclick=()=>{addStock(x.url,x.name);$("q").value="";box.style.display="none"};
+    box.appendChild(b);
+  });
+  const d=document.createElement("button");
+  d.innerHTML="Add symbol “"+esc(v.toUpperCase())+"” directly";
+  d.onclick=()=>addDirect(v);
+  box.appendChild(d);
+  box.style.display="block";
+}
+function addDirect(v){
+  const sym=v.trim().toUpperCase().replace(/[^A-Z0-9&_-]/g,"");
+  if(!sym)return;
+  addStock("/company/"+sym+"/consolidated/",sym);
+  $("q").value="";$("results").style.display="none";
+}
+
+/* ---------- Ranking ---------- */
+const growth=p=>{if(!p||p.values.length<2)return null;const[a,b]=p.values;if(a==null||b==null||a===0)return null;return (b-a)/Math.abs(a)*100};
+const lastOf=p=>p&&p.values.length?p.values[p.values.length-1]:null;
+const debtRatio=d=>{const x=lastOf(d.debt),r=lastOf(d.reserves);return x!=null&&r!=null&&r>0?x/r:null};
+const SORTS={
+  qProfitG:{get:d=>growth(d.profit),best:"high"},
+  qRevG:{get:d=>growth(d.sales),best:"high"},
+  aProfitG:{get:d=>growth(d.aProfit),best:"high"},
+  aRevG:{get:d=>growth(d.aSales),best:"high"},
+  opm:{get:d=>lastOf(d.opm),best:"high"},
+  roe:{get:d=>d.roe,best:"high"},
+  roce:{get:d=>d.roce,best:"high"},
+  div:{get:d=>d.divYield,best:"high"},
+  pe:{get:d=>d.pe>0?d.pe:null,best:"low"},
+  debt:{get:debtRatio,best:"low"},
+  promo:{get:d=>lastOf(d.promo),best:"high"},
+  pledge:{get:d=>d.pledged??0,best:"low"}
+};
+const SCORE_KEYS=["qProfitG","qRevG","aProfitG","opm","roe","roce","pe","debt","pledge","div"];
+function scores(){
+  const list=state.stocks.filter(s=>s.data),out={};
+  if(list.length<2)return out;
+  const vals={};SCORE_KEYS.forEach(k=>vals[k]=list.map(s=>SORTS[k].get(s.data)).filter(v=>v!=null));
+  list.forEach(s=>{
+    const parts=[];
+    SCORE_KEYS.forEach(k=>{
+      const v=SORTS[k].get(s.data);if(v==null)return;
+      let less=0,eq=0;vals[k].forEach(x=>{if(x<v)less++;else if(x===v)eq++});
+      let pr=(less+eq/2)/vals[k].length;if(SORTS[k].best==="low")pr=1-pr;
+      parts.push(pr);
+    });
+    out[s.symbol]=parts.length?Math.round(parts.reduce((a,b)=>a+b,0)/parts.length*100):null;
+  });
+  return out;
+}
+/* Latest quarter that has results, e.g. "Sep 2026" -> sortable number + label */
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function qInfo(d){
+  if(!d)return null;
+  for(const p of [d.sales,d.profit,d.eps,d.opProfit,d.opm]){
+    if(!p||!p.labels||!p.labels.length)continue;
+    const l=p.labels[p.labels.length-1]||"";
+    const m=/^([A-Za-z]{3})[a-z]*\s+(\d{4})$/.exec(l.trim());
+    if(m&&MON[m[1].toLowerCase()]!=null)return {label:l.trim(),key:(+m[2])*12+MON[m[1].toLowerCase()]};
+  }
+  return null;
+}
+let filterText="";
+function matchesFilter(s){
+  if(!filterText)return true;
+  return (s.name||"").toLowerCase().includes(filterText)||(s.symbol||"").toLowerCase().includes(filterText);
+}
+function ordered(applyFilter=true){
+  const sc=scores(),k=state.settings.sort||"score";
+  const arr=(applyFilter?state.stocks.filter(matchesFilter):state.stocks.slice());
+  if(k==="added")return arr;
+  if(k==="name")return arr.sort((a,b)=>a.name.localeCompare(b.name));
+  if(k==="latestq"){
+    const qk=s=>{const q=qInfo(s.data);return q?q.key:null};
+    return arr.sort((a,b)=>{
+      const x=qk(a),y=qk(b);
+      if(x!==y){if(x==null)return 1;if(y==null)return -1;return y-x}
+      const sa=sc[a.symbol],sb=sc[b.symbol];
+      if(sa!==sb){if(sa==null)return 1;if(sb==null)return -1;return sb-sa}
+      return a.name.localeCompare(b.name);
+    });
+  }
+  const val=s=>!s.data?null:(k==="score"?(sc[s.symbol]??null):SORTS[k].get(s.data));
+  const dir=(k==="score"||SORTS[k].best==="high")?-1:1;
+  return arr.sort((a,b)=>{
+    const x=val(a),y=val(b);
+    if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+    return (x-y)*dir;
+  });
+}
+
+/* ---------- Rendering ---------- */
+const f0=n=>n==null?"—":n.toLocaleString("en-IN",{maximumFractionDigits:0});
+const f1=n=>n==null?"—":n.toLocaleString("en-IN",{maximumFractionDigits:1});
+const f2=n=>n==null?"—":n.toLocaleString("en-IN",{maximumFractionDigits:2});
+const pct=n=>n==null?"—":f1(n)+"%";
+const sgn=n=>n==null?"—":(n>0?"+":"")+f1(n)+"%";
+function diffTxt(p,fn,kind){
+  if(!p||p.values.length<2)return "—";
+  const [a,b]=p.values;if(a==null||b==null)return "—";
+  const d=b-a,sg=d>0?"+":"";
+  if(kind==="pct")return sg+f1(d)+" pp";
+  return sg+fn(d)+" ("+sgn(growth(p))+")";
+}
+function pairCell(p,fn,invert,kind){
+  if(!p||p.values.every(v=>v==null))return '<span class="na">—</span>';
+  const [a,b]=p.values,[la,lb]=p.labels;
+  let cls="";
+  if(a!=null&&b!=null&&a!==b)cls=((b>a)!==!!invert)?"up":"dn";
+  return `<div class="pc"><div class="lat ${cls}">${fn(b)}<small>${esc(lb)}</small></div><div class="prv">${fn(a)}<small>${esc(la)}</small></div><div class="dif ${cls}">Δ ${diffTxt(p,fn,kind)}</div></div>`;
+}
+const scoreCls=n=>n==null?"":n>=65?"hi":n<=35?"lo":"";
+const V="Valuation",Q="Quarterly results",Y="Annual results",B="Balance sheet and returns",H="Shareholding";
+const COLS=[
+  ["Price (₹)",d=>f2(d.price),V],
+  ["TTM EPS (₹)",d=>f2(d.ttmEps),V],
+  ["P/E",d=>f1(d.pe),V],
+  ["Industry P/E",d=>f1(d.industryPE),V],
+  ["Sector P/E",d=>f1(d.sectorPE),V],
+  ["Div. yield",d=>pct(d.divYield),V],
+  ["Face value (₹)",d=>f2(d.faceValue),V],
+  ["Book value (₹)",d=>f2(d.bv),V],
+  ["EPS qtr (₹)",d=>pairCell(d.eps,f2),Q],
+  ["Revenue qtr (₹ Cr)",d=>pairCell(d.sales,f0),Q],
+  ["Operating profit qtr (₹ Cr)",d=>pairCell(d.opProfit,f0),Q],
+  ["Other income qtr (₹ Cr)",d=>pairCell(d.otherInc,f0),Q],
+  ["Net profit qtr (₹ Cr)",d=>pairCell(d.profit,f0),Q],
+  ["Margin qtr (OPM %)",d=>pairCell(d.opm,pct,false,"pct"),Q],
+  ["Revenue year (₹ Cr)",d=>pairCell(d.aSales,f0),Y],
+  ["Operating profit year (₹ Cr)",d=>pairCell(d.aOpProfit,f0),Y],
+  ["Other income year (₹ Cr)",d=>pairCell(d.aOtherInc,f0),Y],
+  ["Net profit year (₹ Cr)",d=>pairCell(d.aProfit,f0),Y],
+  ["Margin year (OPM %)",d=>pairCell(d.aOpm,pct,false,"pct"),Y],
+  ["Debt (₹ Cr)",d=>pairCell(d.debt,f0,true),B],
+  ["Reserves (₹ Cr)",d=>pairCell(d.reserves,f0),B],
+  ["ROCE",d=>pct(d.roce),B],
+  ["ROE",d=>pct(d.roe),B],
+  ["Promoters %",d=>pairCell(d.promo,pct,false,"pct"),H],
+  ["FII %",d=>pairCell(d.fii,pct,false,"pct"),H],
+  ["DII %",d=>pairCell(d.dii,pct,false,"pct"),H],
+  ["Institutions %",d=>pairCell(d.inst,pct,false,"pct"),H],
+  ["Pledged %",d=>pct(d.pledged),H]
+];
+function ago(ts){
+  if(!ts)return "never updated";
+  const m=Math.round((Date.now()-ts)/60000);
+  if(m<1)return "just now";if(m<60)return m+" min ago";
+  const h=Math.round(m/60);if(h<24)return h+" h ago";
+  return Math.round(h/24)+" d ago";
+}
+function render(){
+  const t=$("tbl"),c=$("cards");
+  if(!state.stocks.length){
+    $("count").textContent="";
+    c.innerHTML='<p class="empty">Your watchlist is empty. Search for a stock above and tap it to add.</p>';
+    t.innerHTML='<tbody><tr><td class="empty" style="text-align:center;position:static">Your watchlist is empty. Search for a stock above and click it to add.</td></tr></tbody>';
+    return;
+  }
+  const list=ordered(),sc=scores();
+  $("count").textContent=filterText?"("+list.length+" of "+state.stocks.length+")":"("+state.stocks.length+")";
+  if(!list.length){
+    c.innerHTML='<p class="empty">No stocks match "'+esc(filterText)+'".</p>';
+    t.innerHTML='<tbody><tr><td class="empty" style="text-align:center;position:static">No stocks match "'+esc(filterText)+'".</td></tr></tbody>';
+    if(openSym)renderDetail();
+    return;
+  }
+  let h="<thead><tr><th>Stock</th><th>Score</th>"+COLS.map(x=>"<th>"+x[0]+"</th>").join("")+"<th></th></tr></thead><tbody>";
+  list.forEach(s=>{
+    const score=sc[s.symbol];
+    h+=`<tr><td><button class="link" data-open="${esc(s.symbol)}">${esc(s.name)}</button><span class="sym">${esc(s.symbol)}</span>${(()=>{const q=qInfo(s.data);return q?`<span class="upd">Result: ${esc(q.label)}</span>`:""})()}<span class="upd">${ago(s.updated)}</span>${s.error?`<span class="err-note">${esc(s.error)}</span>`:""}</td>`;
+    h+=`<td>${score==null?'<span class="na">—</span>':`<span class="pill ${scoreCls(score)}">${score}</span>`}</td>`;
+    COLS.forEach(x=>{h+="<td>"+(s.data?x[1](s.data):'<span class="na">…</span>')+"</td>"});
+    h+=`<td><div class="acts"><button class="icon" data-ref="${esc(s.symbol)}" title="Refresh">↻</button><button class="icon" data-del="${esc(s.symbol)}" title="Remove">✕</button></div></td></tr>`;
+  });
+  t.innerHTML=h+"</tbody>";
+  c.innerHTML=list.map((s,i)=>{
+    const d=s.data,score=sc[s.symbol];
+    const l2=d?`P/E ${f1(d.pe)} · Profit qtr ${sgn(growth(d.profit))} · Revenue qtr ${sgn(growth(d.sales))}`:(s.error?esc(s.error):"Loading…");
+    return `<button class="stockrow" data-open="${esc(s.symbol)}"><div class="l1"><span><b>${esc(s.name)}</b><span class="sym">${esc(s.symbol)} · ${(()=>{const q=qInfo(d);return q?"Result "+esc(q.label)+" · ":""})()}${ago(s.updated)}</span></span><span>${d?"₹ "+f2(d.price):""} ${score==null?"":`<span class="pill ${scoreCls(score)}">${score}</span>`}</span></div><div class="l2">${l2}</div></button>`;
+  }).join("");
+  if(openSym)renderDetail();
+}
+function rowClick(e){
+  const o=e.target.closest("[data-open]"),r=e.target.closest("[data-ref]"),d=e.target.closest("[data-del]");
+  if(o)openDetail(o.dataset.open);
+  if(r){const s=state.stocks.find(x=>x.symbol===r.dataset.ref);if(s)refreshMany([s])}
+  if(d&&confirm("Remove "+d.dataset.del+" from your watchlist?"))removeStock(d.dataset.del);
+}
+$("tbl").addEventListener("click",rowClick);
+$("cards").addEventListener("click",rowClick);
+
+/* ---------- Detail (one stock) ---------- */
+function pairRows(label,p,fn){
+  if(!p)return [[label,"—"]];
+  return p.labels.map((l,i)=>[label+(l?" ("+l+")":""),fn(p.values[i])]).reverse();
+}
+let detailMode="list";
+function pairRowsD(label,p,fn,kind){
+  return [...pairRows(label,p,fn),[label+" change",diffTxt(p,fn,kind)]];
+}
+function openDetail(sym){openSym=sym;detailMode=state.settings.view==="cards"?"card":"list";$("listView").hidden=true;$("detailView").hidden=false;renderDetail();window.scrollTo({top:0})}
+function closeDetail(){openSym=null;$("detailView").hidden=true;$("listView").hidden=false}
+function renderDetail(){
+  const s=state.stocks.find(x=>x.symbol===openSym);if(!s){closeDetail();return}
+  $("dTitle").textContent=s.name+" ("+s.symbol+")";
+  const asCard=detailMode==="card";
+  $("dTbl").parentElement.hidden=asCard;$("dCard").hidden=!asCard;
+  $("dToggle").textContent=asCard?"Show as list":"Show as card";
+  if(asCard){renderDetailCard(s);return}
+  const d=s.data,sc=scores();
+  const rows=[{s:"Overview"},["Last updated",s.updated?new Date(s.updated).toLocaleString():"never"]];
+  if(s.error)rows.push(["Last error",s.error]);
+  if(d){
+    rows.push(["Sector",d.sectorName||"—"],["Industry",d.industryName||"—"],
+      ["Score (0 to 100)",sc[s.symbol]==null?"— (needs 2 or more stocks)":String(sc[s.symbol])],
+      ["Price (₹)",f2(d.price)],["Market cap (₹ Cr)",f0(d.mcap)],["Current P/E",f1(d.pe)],
+      ["Industry P/E",f1(d.industryPE)],["Sector P/E",f1(d.sectorPE)],
+      ["Book value (₹)",f2(d.bv)],["Face value (₹)",f2(d.faceValue)],["Dividend yield",pct(d.divYield)],
+      ["ROCE",pct(d.roce)],["ROE",pct(d.roe)],
+      {s:"Quarterly results"},
+      ["TTM EPS (₹)",f2(d.ttmEps)],
+      ...pairRowsD("EPS (₹)",d.eps,f2),
+      ...pairRowsD("Revenue (₹ Cr)",d.sales,f0),
+      ...pairRowsD("Operating profit (₹ Cr)",d.opProfit,f0),
+      ...pairRowsD("Other income (₹ Cr)",d.otherInc,f0),
+      ...pairRowsD("Net profit (₹ Cr)",d.profit,f0),
+      ...pairRowsD("Margin OPM %",d.opm,pct,"pct"),
+      {s:"Annual results"},
+      ...pairRowsD("Revenue (₹ Cr)",d.aSales,f0),
+      ...pairRowsD("Operating profit (₹ Cr)",d.aOpProfit,f0),
+      ...pairRowsD("Other income (₹ Cr)",d.aOtherInc,f0),
+      ...pairRowsD("Net profit (₹ Cr)",d.aProfit,f0),
+      ...pairRowsD("Margin OPM %",d.aOpm,pct,"pct"),
+      {s:"Balance sheet (yearly)"},
+      ...pairRows("Debt, borrowings (₹ Cr)",d.debt,f0),
+      ...pairRows("Reserves (₹ Cr)",d.reserves,f0),
+      {s:"Shareholding"},
+      ...pairRows("Promoters %",d.promo,pct),
+      ...pairRows("FII %",d.fii,pct),
+      ...pairRows("DII %",d.dii,pct),
+      ...pairRows("Institutions % (FII + DII)",d.inst,pct),
+      ...pairRows("Public %",d.pub,pct),
+      ["Pledged % of promoter holding",pct(d.pledged)+(d.pledged===0?" (none reported)":"")]);
+    if(d.notes&&d.notes.length)rows.push({s:"Notes"},...d.notes.map(n=>["",n]));
+  }
+  rows.push({s:"Link"},["Screener page",null]);
+  $("dTbl").innerHTML="<tbody>"+rows.map(r=>{
+    if(r.s)return `<tr><td class="sec" colspan="2">${esc(r.s)}</td></tr>`;
+    if(r[1]===null)return `<tr><td>${esc(r[0])}</td><td><a href="${SITE+esc(s.url)}" target="_blank" rel="noopener">Open on screener.in</a></td></tr>`;
+    return `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`;
+  }).join("")+"</tbody>";
+}
+function renderDetailCard(s){
+  const d=s.data,sc=scores()[s.symbol];
+  let h=`<div class="dhead"><span>${esc(s.symbol)} · ${ago(s.updated)}</span>${sc==null?"":`<span class="pill ${scoreCls(sc)}">Score ${sc}</span>`}</div>`;
+  if(s.error)h+=`<div class="err-note" style="max-width:none">${esc(s.error)}</div>`;
+  if(!d){$("dCard").innerHTML=h+'<p class="na">Loading…</p>';return}
+  if(d.sectorName||d.industryName)h+=`<div class="note" style="margin:4px 0 0">${esc(d.sectorName)}${d.industryName&&d.industryName!==d.sectorName?" › "+esc(d.industryName):""}</div>`;
+  [V,Q,Y,B,H].forEach(t=>{
+    h+=`<div class="gt">${t}</div><div class="dgrid">`+COLS.filter(c=>c[2]===t).map(c=>`<div><div class="k">${c[0]}</div><div class="v">${c[1](d)}</div></div>`).join("")+"</div>";
+  });
+  if(d.notes&&d.notes.length)h+=`<p class="note">${d.notes.map(esc).join("<br>")}</p>`;
+  h+=`<p class="note"><a href="${SITE+esc(s.url)}" target="_blank" rel="noopener">Open on screener.in</a></p>`;
+  $("dCard").innerHTML=h;
+}
+$("dToggle").onclick=()=>{detailMode=detailMode==="card"?"list":"card";renderDetail()};
+$("dBack").onclick=closeDetail;
+$("dRefresh").onclick=()=>{const s=state.stocks.find(x=>x.symbol===openSym);if(s)refreshMany([s])};
+$("dDelete").onclick=()=>{if(openSym&&confirm("Remove "+openSym+" from your watchlist?"))removeStock(openSym)};
+
+/* ---------- CSV ---------- */
+const csvEsc=v=>{if(v==null)return "";const s=String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+const PAIR_COLS=[["EPS quarter","eps"],["Revenue quarter","sales"],["Operating profit quarter","opProfit"],["Other income quarter","otherInc"],["Net profit quarter","profit"],["OPM % quarter","opm"],
+  ["Revenue year","aSales"],["Operating profit year","aOpProfit"],["Other income year","aOtherInc"],["Net profit year","aProfit"],["OPM % year","aOpm"],["Debt","debt"],["Reserves","reserves"],
+  ["Promoters %","promo"],["FII %","fii"],["DII %","dii"],["Institutions %","inst"]];
+function buildCsv(){
+  const list=ordered(false),sc=scores();
+  const head=["Order","Symbol","Name","Score (0-100)","Price","P/E","Industry P/E","Sector P/E","TTM EPS","Face value","Dividend yield %","Book value","ROCE %","ROE %","Sector","Industry"];
+  PAIR_COLS.forEach(([n])=>head.push(n+" latest",n+" previous",n+" change",n+" periods (previous to latest)"));
+  head.push("Pledged %","Last updated");
+  const lines=[head.map(csvEsc).join(",")];
+  list.forEach((s,i)=>{
+    const d=s.data||{};
+    const r=[i+1,s.symbol,s.name,sc[s.symbol],d.price,d.pe,d.industryPE,d.sectorPE,d.ttmEps,d.faceValue,d.divYield,d.bv,d.roce,d.roe,d.sectorName,d.industryName];
+    PAIR_COLS.forEach(([,k])=>{
+      const p=d[k];
+      if(p&&p.values){const x=p.values[0],y=p.values[1];r.push(y,x,(x!=null&&y!=null)?Math.round((y-x)*100)/100:"",(p.labels[0]||"")+" to "+(p.labels[1]||""))}else r.push("","","","");
+    });
+    r.push(d.pledged,s.updated?new Date(s.updated).toISOString():"");
+    lines.push(r.map(csvEsc).join(","));
+  });
+  return lines.join("\r\n");
+}
+async function exportCsv(){
+  if(!state.stocks.length)return setStatus("Add a stock first.",true);
+  const csv="\ufeff"+buildCsv();
+  const name="watchlist-"+new Date().toISOString().slice(0,10)+".csv";
+  if(window.NativeHttp&&window.NativeHttp.saveCsv){
+    try{
+      const r=String(window.NativeHttp.saveCsv(name,csv));
+      if(r.startsWith("ok:"))return setStatus("CSV saved to "+r.slice(3));
+    }catch(e){}
+  }
+  const cap=window.Capacitor,P=cap&&cap.Plugins;
+  const native=!!(cap&&cap.isNativePlatform&&cap.isNativePlatform());
+  if(native&&P&&P.Filesystem&&P.Share){
+    try{
+      const w=await P.Filesystem.writeFile({path:name,data:csv,directory:"CACHE",encoding:"utf8"});
+      await P.Share.share({title:"Watchlist CSV",dialogTitle:"Save or send your CSV",files:[w.uri]});
+      return setStatus("CSV ready. Choose where to save it in the share menu.");
+    }catch(e){
+      if(/cancel/i.test(String(e&&e.message)))return;
+    }
+  }else if(!native){
+    try{
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=name;
+      document.body.appendChild(a);a.click();a.remove();
+      return setStatus("CSV downloaded.");
+    }catch(e){}
+  }
+  $("csvText").value=buildCsv();$("csvBox").hidden=false;
+  $("csvBox").scrollIntoView({behavior:"smooth"});
+}
+$("csvBtn").addEventListener("click",exportCsv);
+$("csvClose").addEventListener("click",()=>{$("csvBox").hidden=true});
+$("csvCopy").addEventListener("click",async()=>{
+  const t=$("csvText");t.select();
+  try{await navigator.clipboard.writeText(t.value);setStatus("CSV copied.")}catch(e){document.execCommand&&document.execCommand("copy");setStatus("CSV selected. Use Copy from the menu.")}
+});
+
+/* ---------- Settings & start ---------- */
+$("flt").addEventListener("input",()=>{filterText=$("flt").value.trim().toLowerCase();render()});
+window.goBack=()=>{if(openSym){closeDetail();return true}return false};
+$("mode").addEventListener("change",()=>{state.settings.mode=$("mode").value;save();autoCheck()});
+$("proxy").addEventListener("change",()=>{state.settings.proxy=$("proxy").value;save()});
+$("sort").addEventListener("change",()=>{state.settings.sort=$("sort").value;save();render()});
+$("testConn").addEventListener("click",async()=>{
+  const out=$("testOut");out.textContent="Testing each route…";
+  const u=SITE+"/company/TCS/consolidated/";const lines=[];
+  for(const r of routes(u)){
+    try{const t=await timedFetch(r.url,15000);lines.push((t.includes("top-ratios")?"OK      ":"BAD     ")+r.label+(t.includes("top-ratios")?"":" (reply was not a Screener page)"))}
+    catch(e){lines.push("FAILED  "+r.label+": "+e.message)}
+    out.textContent=lines.join("\n");
+  }
+});
+$("refreshAll").addEventListener("click",()=>{if(!state.stocks.length)return setStatus("Add a stock first.");refreshMany(state.stocks.slice())});
+function applyView(){
+  document.body.classList.toggle("cardview",state.settings.view==="cards");
+  $("viewBtn").textContent=state.settings.view==="cards"?"Show table":"Show cards";
+}
+$("viewBtn").addEventListener("click",()=>{state.settings.view=state.settings.view==="cards"?"table":"cards";save();applyView()});
+load();
+if(!state.settings.view)state.settings.view=innerWidth<700?"cards":"table";
+$("mode").value=state.settings.mode;$("proxy").value=state.settings.proxy;$("sort").value=state.settings.sort||"score";
+applyView();render();
+setTimeout(autoCheck,500);
+setInterval(autoCheck,60000);
+setInterval(()=>{if(!refreshing)render()},60000);
+</script>
+</body>
+</html>

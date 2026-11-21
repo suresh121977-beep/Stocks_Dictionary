@@ -1,0 +1,49 @@
+{
+ "version": 1,
+ "apps": [
+  {
+   "name": "StockLevels",
+   "type": "gradle",
+   "appDir": "app",
+   "mods": {
+    "app": "StockLevels_app"
+   },
+   "pkg": "com.stocklevels",
+   "activity": "com.stocklevels.MainActivity",
+   "attrs": " android:label=\"Stock Levels\" android:theme=\"@android:style/Theme.Material.Light.NoActionBar\"\n        android:usesCleartextTraffic=\"false\""
+  },
+  {
+   "name": "WordSaver",
+   "type": "gradle",
+   "appDir": "app",
+   "mods": {
+    "app": "WordSaver_app"
+   },
+   "pkg": "com.wordsaver",
+   "activity": "com.wordsaver.MainActivity",
+   "attrs": " android:label=\"Word Saver\" android:theme=\"@android:style/Theme.Material.Light.NoActionBar\"\n        android:usesCleartextTraffic=\"false\""
+  },
+  {
+   "name": "TradingHub-project",
+   "type": "gradle",
+   "appDir": "app",
+   "mods": {
+    "app": "TradingHub_project_app"
+   },
+   "pkg": "com.example.tradinghub",
+   "activity": "com.example.hub.HubActivity",
+   "attrs": " android:allowBackup=\"false\"\n        android:label=\"Trading Hub\"\n        android:theme=\"@style/Theme.App\""
+  },
+  {
+   "name": "StockScope",
+   "type": "gradle",
+   "appDir": "app",
+   "mods": {
+    "app": "StockScope_app"
+   },
+   "pkg": "com.example.stockscope",
+   "activity": "com.example.stockscope.MainActivity",
+   "attrs": " android:label=\"StockScope\" android:theme=\"@android:style/Theme.Material.Light.NoActionBar\""
+  }
+ ]
+}

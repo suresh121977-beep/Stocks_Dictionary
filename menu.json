@@ -1,0 +1,6 @@
+[
+  {"menu": 1, "title": "Stock Levels", "project": "StockLevels", "activity": "com.stocklevels.MainActivity"},
+  {"menu": 2, "title": "Word Saver", "project": "WordSaver", "activity": "com.wordsaver.MainActivity"},
+  {"menu": 3, "title": "Trading Hub", "project": "TradingHub-project", "activity": "com.example.hub.HubActivity"},
+  {"menu": 4, "title": "StockScope", "project": "StockScope", "activity": "com.example.stockscope.MainActivity"}
+]

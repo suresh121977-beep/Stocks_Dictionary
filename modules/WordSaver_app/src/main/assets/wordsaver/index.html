@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Word Saver</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--tx:#1d1d1b;--mut:#6b6a66;--ac:#0f766e;--acbg:#d9f2ee;--bd:#e3e1da;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#222221;--tx:#f0efe9;--mut:#a3a29c;--ac:#5eead4;--acbg:#12403b;--bd:#35342f;color-scheme:dark}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Roboto,sans-serif;max-width:640px;margin:auto;padding:12px}
+h1{font-size:20px;margin:6px 0 10px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;padding:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;font-size:15px}
+.tabs button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+textarea{width:100%;height:160px;padding:10px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:16px/1.4 inherit;resize:vertical}
+.btn{padding:11px 16px;border-radius:10px;border:0;background:var(--ac);color:var(--bg);font-size:15px;font-weight:600}
+.btn.s{background:var(--acbg);color:var(--ac)}
+.row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.chip{display:inline-block;margin:3px;padding:7px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:15px}
+.chip.sv{background:var(--acbg);border-color:var(--ac);color:var(--ac)}
+.item{display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid var(--bd)}
+.item:last-child{border:0}
+.item input[type=checkbox]{width:22px;height:22px;margin-right:12px;flex:none}
+.item b{font-size:17px}.tag{font-size:12px;color:var(--mut)}
+.del{background:none;border:0;color:var(--mut);font-size:20px;padding:4px 10px}
+.mut{color:var(--mut);font-size:14px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#modal.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px))}
+.sheet h2{margin:0 0 4px;font-size:24px}
+.ta{font-size:26px;margin:10px 0 4px}
+.hide{display:none}
+</style></head><body>
+<h1>📚 Word Saver</h1>
+<div class="tabs"><button id="t1" class="on">Paste</button><button id="t2">Saved words (<span id="cnt">0</span>)</button></div>
+
+<div id="p1">
+<textarea id="inp" placeholder="Paste any English text here…"></textarea>
+<div class="row"><button class="btn" id="go">Find words</button><button class="btn s" id="clr">Clear</button></div>
+<div id="res"></div>
+</div>
+
+<div id="p2" class="hide">
+ <div class="card"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="all" style="width:22px;height:22px"> Select all <span class="mut" id="sc"></span></label>
+ <div class="row"><button class="btn" id="exp">Export ▾</button><button class="btn s" id="clrall">Clear all</button></div>
+ <div id="em" class="hide row"><button class="btn s" id="expw">Words only (CSV)</button><button class="btn s" id="expt">With Tamil meaning (CSV)</button></div>
+ <div class="mut" id="ex"></div></div>
+ <div class="card" id="list"></div></div>
+
+<div id="modal"><div class="sheet">
+<h2 id="mw"></h2><div class="tag" id="mt"></div>
+<div class="row"><button class="btn" id="say">🔊 Listen</button><button class="btn s" id="slow">🐢 Slow</button></div>
+<div id="mbody" class="mut">Loading…</div>
+<div class="row"><button class="btn s" id="close">Close</button></div>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const COMMON=("the be to of and a in that have i it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us is are was were been has had did said went made got more very much many such here too off still through where should those own before right great little must again here down never another while last might long great old tell men find under both few put between each next ask need feel high big large part place same thing life world school state family student group country problem hand end eye home water room mother area money story fact month lot book night city name head house point week friend company system program question government number night word let seem help talk turn start show hear play run move live believe hold bring happen write provide sit stand lose pay meet include continue set learn change lead understand watch follow stop create speak read allow add spend grow open walk win offer remember love consider appear buy wait serve die send expect build stay fall cut reach kill remain suggest raise pass sell require report decide pull food man woman child eat sleep drink car bus road door table phone friend morning evening today tomorrow yesterday happy sad angry tired hungry easy hard small young early late fast slow hot cold warm best better worse bad nice sure always often usually sometimes really maybe please thank thanks sorry yes okay hello name speak person people anything something nothing everything everyone someone anyone however though although already enough quite almost against without within during across around along today either neither whether since until upon whose whom between among toward family office shop market class team game music movie picture mind body face hair hands heart idea reason kind line side ").split(/\s+/);
+const CS=new Set(COMMON);
+const VERBS="give take get put set turn look come go break bring carry call check figure find fall hold keep make pick pull run show sit stand work wake throw sort pass pay point let hang cut clean cheer catch blow back end fill hand join kick knock lay lead log move open pop push ring roll sign shut slow speed step stick switch tear try wear wipe write drop dress eat face fix fight hurry mess miss play rule settle shake stay sum track watch wrap grow holdist back burn build calm count cross dig die fade fit freeze lock lift mix pack pour read rip scroll send sell slip split sum tie wind zoom".split(" ");
+const IRR={take:"took taken",get:"got gotten",give:"gave given",go:"went gone",come:"came",run:"ran",break:"broke broken",bring:"brought",hold:"held",keep:"kept",make:"made",sit:"sat",stand:"stood",throw:"threw thrown",wake:"woke woken",wear:"wore worn",write:"wrote written",fall:"fell fallen",find:"found",catch:"caught",hang:"hung",lead:"led",lay:"laid",pay:"paid",shake:"shook shaken",send:"sent",sell:"sold",grow:"grew grown",blow:"blew blown",dig:"dug",tear:"tore torn",freeze:"froze frozen",tie:"tied tying",die:"died dying",wind:"wound"};
+const PART="up|out|off|on|in|down|over|away|back|through|along|around|apart|by|about|into|across|ahead|forward";
+const vf={};
+VERBS.forEach(v=>{const f=[v,v+"s",v+"es",v+"ed",v+"d",v+"ing"];
+ if(v.endsWith("e"))f.push(v.slice(0,-1)+"ing");
+ if(v.endsWith("y"))f.push(v.slice(0,-1)+"ied",v.slice(0,-1)+"ies");
+ const l=v[v.length-1];f.push(v+l+"ed",v+l+"ing");
+ (IRR[v]||"").split(" ").filter(Boolean).forEach(x=>f.push(x));
+ f.forEach(x=>vf[x]=v)});
+const STOP=new Set(["in in","on on","by by","go go","back back","up up","out out","in on","on in"]);
+function stem(w){for(const s of["ing","ed","es","ly","s","d","er","est"]){if(w.endsWith(s)&&w.length-s.length>=3){const r=w.slice(0,-s.length);if(CS.has(r)||CS.has(r+"e")||CS.has(r.slice(0,-1)))return true}}return false}
+function analyse(t){
+ const text=t.replace(/[’‘]/g,"'");
+ const toks=text.toLowerCase().match(/[a-z]+(?:'[a-z]+)?/g)||[];
+ const ph=new Set(),df=new Set(),lo=new Set();
+ for(let i=0;i<toks.length-1;i++){const a=toks[i],b=toks[i+1];
+  if(vf[a]&&new RegExp("^("+PART+")$").test(b)&&!STOP.has(a+" "+b))ph.add(vf[a]+" "+b)}
+ for(const w of toks){if(w.length<4||w.includes("'"))continue;
+  if(CS.has(w)||stem(w))continue;
+  if(w.length>=9)df.add(w);else if(w.length>=6)lo.add(w);}
+ return{"Phrasal verbs":[...ph],"Difficult words":[...df],"Less common words":[...lo]};
+}
+let saved=[];try{saved=JSON.parse(localStorage.getItem("ws_saved")||"[]")}catch(e){}
+let cache={};try{cache=JSON.parse(localStorage.getItem("ws_cache")||"{}")}catch(e){}
+function persist(){try{localStorage.setItem("ws_saved",JSON.stringify(saved));localStorage.setItem("ws_cache",JSON.stringify(cache))}catch(e){}}
+const isSaved=w=>saved.some(s=>s.w===w);
+let last={};
+function render(){
+ $("cnt").textContent=saved.length;
+ const r=$("res");r.innerHTML="";
+ let any=false;
+ for(const k in last){const arr=last[k];if(!arr.length)continue;any=true;
+  const c=document.createElement("div");c.className="card";
+  c.innerHTML="<h3>"+k+" ("+arr.length+")</h3>";
+  arr.forEach(w=>{const b=document.createElement("button");b.className="chip"+(isSaved(w)?" sv":"");b.textContent=(isSaved(w)?"✓ ":"+ ")+w;
+   b.onclick=()=>{toggle(w,k);render()};c.appendChild(b)});
+  r.appendChild(c)}
+ if(any){const row=document.createElement("div");row.className="row";
+  const b=document.createElement("button");b.className="btn";b.textContent="Save all";
+  b.onclick=()=>{for(const k in last)last[k].forEach(w=>{if(!isSaved(w))saved.push({w,k})});persist();render()};
+  row.appendChild(b);const m=document.createElement("span");m.className="mut";m.textContent="Tap a word to save it";row.appendChild(m);r.appendChild(row)}
+ const L=$("list");L.innerHTML="";
+ if(!saved.length)L.innerHTML='<div class="mut">No saved words yet.</div>';
+ saved.slice().reverse().forEach(s=>{const d=document.createElement("div");d.className="item";
+  const l=document.createElement("div");l.style.flex="1";l.innerHTML="<b></b><div class='tag'></div>";
+  l.firstChild.textContent=s.w;l.lastChild.textContent=s.k;l.onclick=()=>openW(s);
+  const x=document.createElement("button");x.className="del";x.textContent="✕";x.setAttribute("aria-label","Delete");
+  x.onclick=()=>{saved=saved.filter(q=>q.w!==s.w);persist();render()};
+  const cb=document.createElement("input");cb.type="checkbox";cb.checked=sel.has(s.w);
+  cb.onchange=()=>{cb.checked?sel.add(s.w):sel.delete(s.w);upd()};
+  d.append(cb,l,x);L.appendChild(d)});
+ upd();
+}
+let sel=new Set();
+function upd(){sel=new Set([...sel].filter(isSaved));$("sc").textContent="("+sel.size+" of "+saved.length+" selected)";
+ $("all").checked=saved.length>0&&sel.size===saved.length}
+$("all").onchange=()=>{sel=$("all").checked?new Set(saved.map(x=>x.w)):new Set();render()};
+let ca=0,cat;
+$("clrall").onclick=()=>{if(!saved.length){$("ex").textContent="No saved words.";return}
+ if(!ca){ca=1;$("clrall").textContent="Tap again to delete "+saved.length;cat=setTimeout(()=>{ca=0;$("clrall").textContent="Clear all"},4000);return}
+ clearTimeout(cat);ca=0;$("clrall").textContent="Clear all";saved=[];sel=new Set();persist();render();$("ex").textContent="All saved words cleared."};
+const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+$("exp").onclick=()=>$("em").classList.toggle("hide");
+$("expw").onclick=()=>{
+ const ws=sel.size?saved.filter(x=>sel.has(x.w)):saved;
+ if(!ws.length){$("ex").textContent="No saved words to export.";return}
+ const rows=[["Word","Type"].map(q).join(",")].concat(ws.map(x=>[x.w,x.k].map(q).join(",")));
+ const nm="saved-words-only-"+new Date().toISOString().slice(0,10)+".csv";
+ saveText(nm,rows.join("\r\n")+"\r\n");
+ $("ex").textContent="Exported "+ws.length+" words"+(sel.size?"":" (all)")+" to Downloads/"+nm;$("em").classList.add("hide")};
+async function getMeaning(w){
+ if(cache[w])return cache[w];
+ const j={};
+ const t=await (await fetch("https://api.mymemory.translated.net/get?q="+encodeURIComponent(w)+"&langpair=en|ta")).json();
+ j.tamil=t.responseData.translatedText;if(!j.tamil)throw 0;
+ try{const dr=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(w));
+  if(dr.ok){const d=(await dr.json())[0].meanings[0].definitions[0];j.english=d.definition;
+   if(d.example){j.example=d.example;
+    try{const e=await (await fetch("https://api.mymemory.translated.net/get?q="+encodeURIComponent(d.example)+"&langpair=en|ta")).json();j.exampleTamil=e.responseData.translatedText}catch(_){}}}}catch(_){}
+ cache[w]=j;persist();return j}
+function saveText(name,text){
+ if(window.Android){const u=new TextEncoder().encode("\uFEFF"+text);const id="c"+Date.now();
+  Android.saveBegin(id,name,"text/csv");
+  for(let o=0;o<u.length;o+=600000){let b="";const p=u.subarray(o,o+600000);for(let i=0;i<p.length;i+=8000)b+=String.fromCharCode.apply(null,p.subarray(i,i+8000));Android.saveChunk(id,btoa(b))}
+  Android.saveEnd(id)}
+ else{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+text],{type:"text/csv;charset=utf-8"}));a.download=name;a.click()}}
+$("expt").onclick=async()=>{
+ const ws=saved.filter(x=>sel.has(x.w));
+ if(!ws.length){$("ex").textContent="Tick the words you want first (or tap Select all).";return}
+ $("expt").disabled=true;const rows=[["Word","Type","Tamil meaning","English meaning","Example","Example (Tamil)"].map(q).join(",")];
+ let miss=0;
+ for(let i=0;i<ws.length;i++){
+  $("ex").textContent="Getting Tamil meanings "+(i+1)+" / "+ws.length+"…";
+  let j={};try{j=await getMeaning(ws[i].w)}catch(e){miss++}
+  rows.push([ws[i].w,ws[i].k,j.tamil,j.english,j.example,j.exampleTamil].map(q).join(","));
+  if(!cache[ws[i].w]&&i<ws.length-1)await new Promise(r=>setTimeout(r,300))}
+ const d=new Date(),nm="saved-words-"+d.toISOString().slice(0,10)+".csv";
+ saveText(nm,rows.join("\r\n")+"\r\n");
+ $("ex").textContent="Exported "+ws.length+" words to Downloads/"+nm+(miss?" ("+miss+" without Tamil — check internet and export again)":"");
+ $("expt").disabled=false;$("em").classList.add("hide")};
+function toggle(w,k){if(isSaved(w))saved=saved.filter(s=>s.w!==w);else saved.push({w,k});persist()}
+$("go").onclick=()=>{const t=$("inp").value.trim();if(!t){$("res").innerHTML='<div class="mut">Paste some text first.</div>';return}
+ last=analyse(t);render();
+ if(!Object.values(last).some(a=>a.length))$("res").innerHTML='<div class="mut">Nothing unusual found.</div>'};
+$("clr").onclick=()=>{$("inp").value="";last={};render()};
+function tab(n){$("p1").classList.toggle("hide",n!=1);$("p2").classList.toggle("hide",n!=2);$("t1").classList.toggle("on",n==1);$("t2").classList.toggle("on",n==2)}
+$("t1").onclick=()=>tab(1);$("t2").onclick=()=>tab(2);
+function speak(w,rate){if(window.Android){Android.speak(w,rate||0.9);return}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(w);u.lang="en-US";u.rate=rate||0.9;speechSynthesis.speak(u)}catch(e){}}
+let cur=null;
+async function openW(s){
+ cur=s.w;$("mw").textContent=s.w;$("mt").textContent=s.k;$("modal").classList.add("on");
+ speak(s.w);
+ const mb=$("mbody");
+ if(cache[s.w]){show(cache[s.w]);return}
+ mb.className="mut";mb.textContent="Getting Tamil meaning…";
+ try{const j=await getMeaning(s.w);if(cur===s.w)show(j)}
+ catch(e){mb.className="mut";mb.textContent="Could not load the meaning. Check your internet connection and try again."}
+}
+function show(j){const mb=$("mbody");mb.className="";mb.innerHTML="";
+ const add=(c,t)=>{const d=document.createElement("div");d.className=c;d.textContent=t;mb.appendChild(d)};
+ add("ta",j.tamil||"");add("mut",j.english||"");
+ if(j.example){add("","");add("mut","“"+j.example+"”");add("mut",j.exampleTamil||"")}
+}
+$("say").onclick=()=>speak(cur,0.9);$("slow").onclick=()=>speak(cur,0.5);
+$("close").onclick=()=>$("modal").classList.remove("on");
+$("modal").onclick=e=>{if(e.target.id==="modal")$("modal").classList.remove("on")};
+render();
+</script></body></html>
